@@ -1,9 +1,9 @@
-use crate::app::State;
+use crate::app::{State, config::Config};
 
 use super::Command;
 
 
-
+#[derive(Clone)]
 pub struct InvalidCommand {
 
 }
@@ -23,7 +23,15 @@ impl Command for InvalidCommand {
         return "An invalid command.".to_string();
     }
 
-    fn handle(&self, _state: &mut State, command: &str, _args: &[&str]) {
+    fn handle(&self, _state: &mut State, _config: &mut Config, command: &str, _args: &[&str]) {
         println!("'{}' command is not recognized", command);
+    }
+
+    fn get_subcommands(&self) -> Vec<Box<dyn Command>> {
+        vec![]
+    }
+
+    fn clone_box(&self) -> Box<dyn Command> {
+        Box::new(self.clone())
     }
 }

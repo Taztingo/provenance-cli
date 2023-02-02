@@ -4,30 +4,32 @@ use super::Command;
 
 
 #[derive(Clone)]
-pub struct NullCommand {
-
+pub struct ConfigCommand {
+    subcommands: Vec<Box<dyn Command>>
 }
 
-impl NullCommand {
-    pub fn new() -> Self {
-        Self{}
+impl ConfigCommand {
+    pub fn new(subcommands: Vec<Box<dyn Command>>) -> Self {
+        Self{
+            subcommands
+        }
     }
 }
 
-impl Command for NullCommand {
+impl Command for ConfigCommand {
     fn handle(&self, _state: &mut State, _config: &mut Config, _command: &str, _args: &[&str]) {
     }
 
     fn get_name(&self) -> String {
-        return "null".to_string();
+        return "config".to_string();
     }
 
     fn get_help(&self) -> String {
-        return "This command does nothing.".to_string();
+        return "This command allows you to get or set the config.".to_string();
     }
 
     fn get_subcommands(&self) -> Vec<Box<dyn Command>> {
-        vec![]
+        self.subcommands.clone()
     }
 
     fn clone_box(&self) -> Box<dyn Command> {

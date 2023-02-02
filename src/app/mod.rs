@@ -1,7 +1,7 @@
 use std::{io::{Write}, path::{Path}, env::{self}, error::Error};
 
 use crate::cmd::{exit::{ExitCommand}, help::{HelpCommand}, Command, invalid::InvalidCommand, null::NullCommand};
-mod config;
+pub mod config;
 
 pub fn run() -> Result<(), Box<dyn Error>> {
     let commands: Vec<Box<dyn Command>> = vec![Box::new(HelpCommand::new()), Box::new(ExitCommand::new())];
@@ -40,14 +40,14 @@ fn get_input() -> String {
 
 pub struct App {
     state: State,
-    _config: config::Config,
+    config: config::Config,
 }
 
 impl App {
     pub fn new(state: State, config: config::Config) -> Self {
         Self {
             state,
-            _config: config,
+            config: config,
         }
     }
 
@@ -72,7 +72,7 @@ impl App {
                 }
             }
 
-            cmd.handle(&mut self.state, input, &args);
+            cmd.handle(&mut self.state, &mut self.config, input, &args);
         }
     }
 
