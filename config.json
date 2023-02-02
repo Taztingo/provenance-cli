@@ -1,4 +1,8 @@
 {
-	"provenance_path": "",
-	"external_scripts_path": ""
+	"provenance_binary": "",
+	"external_scripts": "./scripts",
+	"provenance_home": "",
+	"test_network": true,
+	"gas_prices": 1905,
+	"gas_adjustment": 1.5
 }

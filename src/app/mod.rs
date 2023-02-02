@@ -1,7 +1,7 @@
-use std::{io::{Write, BufReader}, fs::File, path::{Path, PathBuf}, env::{self}, error::Error};
-use serde::Deserialize;
+use std::{io::{Write}, path::{Path}, env::{self}, error::Error};
 
-use crate::cmd::{exit::{self, ExitCommand}, help::{self, HelpCommand}, Command};
+use crate::cmd::{exit::{ExitCommand}, help::{HelpCommand}, Command, invalid::InvalidCommand, null::NullCommand};
+mod config;
 
 pub fn run() -> Result<(), Box<dyn Error>> {
     let commands: Vec<Box<dyn Command>> = vec![Box::new(HelpCommand::new()), Box::new(ExitCommand::new())];
@@ -9,7 +9,7 @@ pub fn run() -> Result<(), Box<dyn Error>> {
 
     let shell = env::var("PIO_SHELL")?;
     let path = Path::new(&shell).join("config.json");
-    let config = get_config(path);
+    let config = config::get_config(path);
 
     let mut app = App::new(state, config);
     app.start();
@@ -21,18 +21,7 @@ fn render_greeting() {
     println!("Press tab or type help to see a list of commands.");
 }
 
-#[derive(Debug, Deserialize)]
-pub struct Config {
-    provenance_path: String,
-    external_scripts_path: String,
-}
 
-fn get_config(path: PathBuf) -> Config {
-    let file = File::open(&path).expect(format!("{} does not exist!", &path.display()).as_str());
-    let reader = BufReader::new(file);
-    let config: Config = serde_json::from_reader(reader).expect(format!("{} is not valid json format!", path.display()).as_str());
-    config
-}
 
 fn render_input() {
     
@@ -51,11 +40,11 @@ fn get_input() -> String {
 
 pub struct App {
     state: State,
-    _config: Config,
+    _config: config::Config,
 }
 
 impl App {
-    pub fn new(state: State, config: Config) -> Self {
+    pub fn new(state: State, config: config::Config) -> Self {
         Self {
             state,
             _config: config,
@@ -68,12 +57,22 @@ impl App {
         render_greeting();
         while self.state.running {
             render_input();
-            let input = get_input();
-            if input == "exit" {
-                exit::handle(&mut self.state);
-            } else if input == "help" {
-                help::handle(&mut self.state);
+            let mut cmd: Box<dyn Command> = Box::new(InvalidCommand::new());
+            let raw_input = get_input();
+            let mut args: Vec<&str> = raw_input.split_whitespace().collect();
+            let mut input = "";
+            if args.len() == 0 {
+                cmd = Box::new(NullCommand::new());
+            } else {
+                input = args.remove(0);
+                if input == "exit" {
+                    cmd = Box::new(ExitCommand::new());
+                } else if input == "help" {
+                    cmd = Box::new(HelpCommand::new());
+                }
             }
+
+            cmd.handle(&mut self.state, input, &args);
         }
     }
 

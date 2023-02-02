@@ -1,31 +1,30 @@
-
 use crate::app::State;
 
 use super::Command;
 
 
 
-pub struct HelpCommand {
+pub struct ExitCommand {
 
 }
 
-impl HelpCommand {
+impl ExitCommand {
     pub fn new() -> Self {
         Self{}
     }
 }
 
-impl Command for HelpCommand {
-    fn handle(&self, state: &mut State) {
+impl Command for ExitCommand {
+    fn handle(&self, state: &mut State, _command: &str, _args: &[&str]) {
         println!("Exiting {}", state.get_name());
         state.running = false;
     }
 
     fn get_name(&self) -> String {
-        return "help".to_string();
+        return "exit".to_string();
     }
 
     fn get_help(&self) -> String {
-        return "Displays this".to_string();
+        return "Exits the shell.".to_string();
     }
 }
