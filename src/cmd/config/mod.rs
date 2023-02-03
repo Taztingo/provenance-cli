@@ -2,6 +2,8 @@ use crate::app::{State, config::Config};
 
 use super::Command;
 
+pub mod set_config;
+pub mod get_config;
 
 #[derive(Clone)]
 pub struct ConfigCommand {
@@ -17,7 +19,20 @@ impl ConfigCommand {
 }
 
 impl Command for ConfigCommand {
-    fn handle(&self, _state: &mut State, _config: &mut Config, _command: &str, _args: &[&str]) {
+    fn handle(&self, state: &mut State, config: &mut Config, _command: &str, args: &[&str]) {
+        // Have it require a subcommand
+        if args.len() == 0 {
+            println!("'{}' takes a required subcommand. Must either `get` or `set`.", self.get_name());
+            return
+        }
+
+        let mut subcommand_args: Vec<&str> = args.to_vec();
+        let subcommand_name = subcommand_args.remove(0);
+        for subcommand in &self.subcommands {
+            if subcommand.get_name() == subcommand_name {
+                subcommand.handle(state, config, subcommand_name, &subcommand_args);
+            }
+        }
     }
 
     fn get_name(&self) -> String {

@@ -1,15 +1,15 @@
-use std::{io::{Write}, path::{Path}, env::{self}, error::Error};
+use std::{io::{Write}, path::{Path, PathBuf}, env::{self}, error::Error};
 
-use crate::cmd::{exit::{ExitCommand}, help::{HelpCommand}, Command, invalid::InvalidCommand, null::NullCommand};
+use crate::cmd::{exit::{ExitCommand}, help::{HelpCommand}, Command, invalid::InvalidCommand, null::NullCommand, config::{ConfigCommand, set_config::SetConfigCommand, get_config::GetConfigCommand}};
 pub mod config;
 
 pub fn run() -> Result<(), Box<dyn Error>> {
     let commands: Vec<Box<dyn Command>> = vec![Box::new(HelpCommand::new()), Box::new(ExitCommand::new())];
-    let state = State::new("Provenance Shell", commands);
 
     let shell = env::var("PIO_SHELL")?;
     let path = Path::new(&shell).join("config.json");
-    let config = config::get_config(path);
+    let config = config::get_config(&path);
+    let state = State::new("Provenance Shell", commands, path);
 
     let mut app = App::new(state, config);
     app.start();
@@ -69,6 +69,9 @@ impl App {
                     cmd = Box::new(ExitCommand::new());
                 } else if input == "help" {
                     cmd = Box::new(HelpCommand::new());
+                } else if input == "config" {
+                    let subcommands: Vec<Box<dyn Command>> = vec![Box::new(SetConfigCommand::new()), Box::new(GetConfigCommand::new())];
+                    cmd = Box::new(ConfigCommand::new(subcommands));
                 }
             }
 
@@ -88,15 +91,17 @@ impl App {
 pub struct State {
     pub running: bool,
     pub name: String,
-    pub commands: Vec<Box<dyn Command>>
+    pub commands: Vec<Box<dyn Command>>,
+    pub config_path: PathBuf
 }
 
 impl State {
-    pub fn new(name: &str, commands: Vec<Box<dyn Command>>) -> Self {
+    pub fn new(name: &str, commands: Vec<Box<dyn Command>>, config_path: PathBuf) -> Self {
         Self {
             running: false,
             name: name.to_string(),
-            commands
+            commands,
+            config_path,
         }
     }
 
