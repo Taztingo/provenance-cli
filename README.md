@@ -1,5 +1,5 @@
-# provenance-shell
-A CLI to improve user experience with Provenance.
+# provenance-script
+A script manager to improve Provenance user experience.
 
 # Usage
 
