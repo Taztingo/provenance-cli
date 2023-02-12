@@ -1,4 +1,8 @@
+use std::{fs, env, path::Path};
+
 use clap::{Command, command, Arg};
+use glob::glob;
+use std::process;
 
 use super::{config::Config, App};
 
@@ -38,6 +42,24 @@ pub fn cli(app: &mut App) {
             )
         )
     )
+    .subcommand(
+        Command::new("action")
+        .arg_required_else_help(true)
+        .about("Runs a primitive action for Provenance")
+        .subcommands(get_actions())
+    )
+    .subcommand(
+        Command::new("function")
+        .arg_required_else_help(true)
+        .about("Runs a sequence of actions for Provenance")
+        .subcommands(get_functions())
+    )
+    .subcommand(
+        Command::new("scenario")
+        .arg_required_else_help(true)
+        .about("Runs a complex scenario for Provenance containing multiple functions")
+        .subcommands(get_scenarios())
+    )
     .get_matches();
 
     match matches.subcommand() {
@@ -65,6 +87,97 @@ pub fn cli(app: &mut App) {
                 _ => println!("Unreachable")
             }
         },
+        Some(("action", action_matches)) => {
+            match action_matches.subcommand() {
+                Some((external, _)) => {
+                    let shell = env::var("PIO_SCRIPT").expect("PIO_SCRIPT must be set");
+                    let mut script_path = Path::new(&shell).join("scripts").join("actions");
+                    script_path.push(format!("{}.sh", external));
+                    run_script(script_path.to_string_lossy().to_string().as_str())
+                }
+                _ => println!("Unreachable")
+            }
+        },
+        Some(("function", action_matches)) => {
+            match action_matches.subcommand() {
+                Some((external, _)) => {
+                    let shell = env::var("PIO_SCRIPT").expect("PIO_SCRIPT must be set");
+                    let mut script_path = Path::new(&shell).join("scripts").join("functions");
+                    script_path.push(format!("{}.sh", external));
+                    run_script(script_path.to_string_lossy().to_string().as_str())
+                }
+                _ => println!("Unreachable")
+            }
+        },
+        Some(("scenario", action_matches)) => {
+            match action_matches.subcommand() {
+                Some((external, _)) => {
+                    let shell = env::var("PIO_SCRIPT").expect("PIO_SCRIPT must be set");
+                    let mut script_path = Path::new(&shell).join("scripts").join("scenarios");
+                    script_path.push(format!("{}.sh", external));
+                    run_script(script_path.to_string_lossy().to_string().as_str())
+                }
+                _ => println!("Unreachable")
+            }
+        }
         _ => println!("Unreachable")
     }
+}
+
+fn get_actions() -> Vec<Command> {
+    let shell = env::var("PIO_SCRIPT").expect("PIO_SCRIPT must be set");
+    let mut actions = Path::new(&shell).join("scripts").join("actions");
+    actions.push("*");
+
+    let mut commands = vec![];
+    for entry in glob(actions.to_str().unwrap()).unwrap() {
+        if let Ok(path) = entry {
+            if let Some(file_name) = path.file_stem() {
+                let file_name_str = file_name.to_string_lossy().to_string();
+                commands.push(Command::new(file_name_str));
+            }
+        }
+    }
+    commands
+}
+
+fn get_functions() -> Vec<Command> {
+    let shell = env::var("PIO_SCRIPT").expect("PIO_SCRIPT must be set");
+    let mut actions = Path::new(&shell).join("scripts").join("functions");
+    actions.push("*");
+
+    let mut commands = vec![];
+    for entry in glob(actions.to_str().unwrap()).unwrap() {
+        if let Ok(path) = entry {
+            if let Some(file_name) = path.file_stem() {
+                let file_name_str = file_name.to_string_lossy().to_string();
+                commands.push(Command::new(file_name_str));
+            }
+        }
+    }
+    commands
+}
+
+fn get_scenarios() -> Vec<Command> {
+    let shell = env::var("PIO_SCRIPT").expect("PIO_SCRIPT must be set");
+    let mut actions = Path::new(&shell).join("scripts").join("scenarios");
+    actions.push("*");
+
+    let mut commands = vec![];
+    for entry in glob(actions.to_str().unwrap()).unwrap() {
+        if let Ok(path) = entry {
+            if let Some(file_name) = path.file_stem() {
+                let file_name_str = file_name.to_string_lossy().to_string();
+                commands.push(Command::new(file_name_str));
+            }
+        }
+    }
+    commands
+}
+
+fn run_script(script: &str) {
+    let output = process::Command::new(script)
+        .output()
+        .expect("Failed to execute command");
+    print!("{}", String::from_utf8_lossy(&output.stdout).to_string());
 }
