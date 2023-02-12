@@ -22,6 +22,7 @@ impl Config {
     pub fn set(&mut self, key: &str, value: &str) -> bool {
         let mut map = self.to_hashmap();
         if !map.contains_key(key) {
+            println!("{:?} does not contain {}", map, key);
             return false;
         }
         map.insert(key.to_string(), value.to_string());
@@ -43,6 +44,10 @@ impl Config {
             None => None,
             Some(value) => Some(value.clone())
         }
+    }
+
+    pub fn get_keys(&self) -> Vec<String> {
+        self.to_hashmap().into_keys().collect()
     }
 
     fn to_hashmap(&self) -> HashMap<String, String> {
