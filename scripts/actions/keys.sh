@@ -1,8 +1,7 @@
 #!/bin/bash
 
-PIO_DIR=/home/matt/workspace/provenance
-BINARY=$PIO_DIR/build/provenanced
-PIO_HOME=$PIO_DIR/build/run/provenanced/
-TEST=-t
+BINARY=$1
+PIO_HOME=$2
+TEST=$3
 
 "$BINARY" keys list --home "$PIO_HOME" "$TEST"

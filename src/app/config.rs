@@ -3,12 +3,13 @@ use serde::{Deserialize, Serialize};
 
 #[derive(Debug, Deserialize, Serialize)]
 pub struct Config {
-    provenance_binary: String,
-    external_scripts: String,
-    provenance_home: String,
-    test_network: String,
-    gas_prices: String,
-    gas_adjustment: String
+    pub provenance_build: String,
+    pub provenance_binary: String,
+    pub external_scripts: String,
+    pub provenance_home: String,
+    pub test_network: String,
+    pub gas_prices: String,
+    pub gas_adjustment: String
 }
 
 pub fn get_config(path: &PathBuf) -> Config {

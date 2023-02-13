@@ -1,4 +1,4 @@
-use std::{fs, env, path::Path};
+use std::{fs, env, path::{Path, PathBuf}};
 
 use clap::{Command, command, Arg};
 use glob::glob;
@@ -32,7 +32,6 @@ pub fn cli(app: &mut App) {
                 .short('k')
                 .long("key")
                 .required(true)
-
             )
             .arg(
                 Arg::new("value")
@@ -93,7 +92,7 @@ pub fn cli(app: &mut App) {
                     let shell = env::var("PIO_SCRIPT").expect("PIO_SCRIPT must be set");
                     let mut script_path = Path::new(&shell).join("scripts").join("actions");
                     script_path.push(format!("{}.sh", external));
-                    run_script(script_path.to_string_lossy().to_string().as_str())
+                    run_script(script_path.to_string_lossy().to_string().as_str(), &app.config)
                 }
                 _ => println!("Unreachable")
             }
@@ -104,7 +103,7 @@ pub fn cli(app: &mut App) {
                     let shell = env::var("PIO_SCRIPT").expect("PIO_SCRIPT must be set");
                     let mut script_path = Path::new(&shell).join("scripts").join("functions");
                     script_path.push(format!("{}.sh", external));
-                    run_script(script_path.to_string_lossy().to_string().as_str())
+                    run_script(script_path.to_string_lossy().to_string().as_str(), &app.config)
                 }
                 _ => println!("Unreachable")
             }
@@ -115,7 +114,7 @@ pub fn cli(app: &mut App) {
                     let shell = env::var("PIO_SCRIPT").expect("PIO_SCRIPT must be set");
                     let mut script_path = Path::new(&shell).join("scripts").join("scenarios");
                     script_path.push(format!("{}.sh", external));
-                    run_script(script_path.to_string_lossy().to_string().as_str())
+                    run_script(script_path.to_string_lossy().to_string().as_str(), &app.config)
                 }
                 _ => println!("Unreachable")
             }
@@ -166,18 +165,125 @@ fn get_scenarios() -> Vec<Command> {
     let mut commands = vec![];
     for entry in glob(actions.to_str().unwrap()).unwrap() {
         if let Ok(path) = entry {
-            if let Some(file_name) = path.file_stem() {
-                let file_name_str = file_name.to_string_lossy().to_string();
-                commands.push(Command::new(file_name_str));
-            }
+            commands.push(script_to_command(path));
         }
     }
     commands
 }
 
-fn run_script(script: &str) {
+fn run_script(script: &str, config: &Config) {
     let output = process::Command::new(script)
+        .arg(&config.provenance_build)
+        .arg(&config.provenance_binary)
+        .arg(&config.provenance_home)
+        .arg("20")
         .output()
         .expect("Failed to execute command");
     print!("{}", String::from_utf8_lossy(&output.stdout).to_string());
+}
+
+struct Script {
+    name: String,
+    author: String,
+    version: String,
+    description: String,
+    args: Vec<ScriptArg>,
+}
+
+impl Script {
+    pub fn new() -> Self {
+        Self {
+            name: "".to_string(),
+            author: "".to_string(),
+            version: "".to_string(),
+            description: "".to_string(),
+            args: vec![],
+        }
+    }
+}
+
+struct ScriptArg {
+    pub name: String,
+    pub description: String,
+    pub default: String,
+}
+
+fn read_script(filepath: &PathBuf) -> Script {
+    let file_contents = fs::read_to_string(filepath).expect("Unable to read file");
+    let mut script = Script::new();
+
+    if let Some(file_name) = filepath.file_stem() {
+        script.name = file_name.to_string_lossy().to_string();
+    }
+
+    // Parse the file
+    let mut parse_description = false;
+    let mut parse_author = false;
+    let mut parse_version = false;
+    let mut parse_args = false;
+    for line in file_contents.lines() {
+        // Check for end parsing
+        let line = line.trim();
+        if line == "#" {
+            parse_description = false;
+            parse_author = false;
+            parse_version = false;
+            parse_args = false;
+        }
+
+        // Check for content parsing
+        if parse_description {
+            // Remove the "# " from the string and the rest is the description
+            script.description = line.replace("# ", "");
+        } else if parse_author {
+            // Remove the "# " from the string and the rest is the author
+            script.author = line.replace("# ", "");
+        } else if parse_version {
+            // Remove the "# " from the string and the rest is the version
+            script.version = line.replace("# ", "");
+        } else if parse_args {
+            // Remove the "# " from the string.
+            let arg = line.replace("# ", "");
+
+            // Split the string by ;
+            // First item is the arg name
+            // Second item is the arg description
+            // Third item is the default value
+            let mut split = arg.split(";");
+            script.args.push(ScriptArg{
+                name: split.next().unwrap().to_string(),
+                description: split.next().unwrap().to_string(),
+                default: split.next().unwrap().to_string()
+            });
+        }
+
+        // Check for start parsing
+        if line.contains("# DESCRIPTION") {
+            parse_description = true;
+        } else if line.contains("# AUTHOR") {
+            parse_author = true;
+        } else if line.contains("# VERSION") {
+            parse_version = true;
+        } else if line.contains("# ARGS") {
+            parse_args = true;
+        }
+    }
+
+    script
+}
+
+fn script_to_command(path: PathBuf) -> Command {
+    let script = read_script(&path);
+    let mut command = Command::new(script.name)
+        .about(script.description)
+        .author(script.author)
+        .version(script.version);
+    for arg in &script.args {
+        command = command.arg(
+            Arg::new(&arg.name)
+            .help(&arg.description)
+            .required(true)
+        );
+    }
+    command
 }
