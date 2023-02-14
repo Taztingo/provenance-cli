@@ -130,7 +130,7 @@ fn get_args_from_argmatches(ext_m: &ArgMatches) -> Vec<String> {
     let mut args: Vec<(String, String)> = ext_m.ids()
     .map(|arg| (arg.as_str().to_string(), ext_m.get_one::<String>(arg.as_str()).unwrap().clone()))
     .collect();
-    args.sort_by(|a, b| a.0.cmp(&b.0));
+    args.sort_by(|a, b| b.0.cmp(&a.0));
     let args: Vec<String> = args.iter().map(|arg| arg.1.clone()).collect();
     args
 }
@@ -143,10 +143,7 @@ fn get_actions() -> Vec<Command> {
     let mut commands = vec![];
     for entry in glob(actions.to_str().unwrap()).unwrap() {
         if let Ok(path) = entry {
-            if let Some(file_name) = path.file_stem() {
-                let file_name_str = file_name.to_string_lossy().to_string();
-                commands.push(Command::new(file_name_str));
-            }
+            commands.push(script_to_command(path));
         }
     }
     commands
@@ -160,10 +157,7 @@ fn get_functions() -> Vec<Command> {
     let mut commands = vec![];
     for entry in glob(actions.to_str().unwrap()).unwrap() {
         if let Ok(path) = entry {
-            if let Some(file_name) = path.file_stem() {
-                let file_name_str = file_name.to_string_lossy().to_string();
-                commands.push(Command::new(file_name_str));
-            }
+            commands.push(script_to_command(path));
         }
     }
     commands
@@ -184,10 +178,14 @@ fn get_scenarios() -> Vec<Command> {
 }
 
 fn run_script(script: &str, config: &Config, args: &[String]) {
+    let testing = if config.test_network == "true" { "-t" } else {""};
     let output = process::Command::new(script)
-        .arg(&config.provenance_build)
         .arg(&config.provenance_binary)
+        .arg(&config.provenance_build)
         .arg(&config.provenance_home)
+        .arg(testing)
+        .arg(&config.gas_prices)
+        .arg(&config.gas_adjustment)
         .args(args)
         .output()
         .expect("Failed to execute command");

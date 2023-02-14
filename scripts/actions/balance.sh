@@ -1,7 +1,7 @@
 #!/bin/bash
 
 # DESCRIPTION
-# Lists the keys in the home directory.
+# Queries the balances for the account.
 #
 # AUTHOR
 # Matthew Witkowski
@@ -10,6 +10,7 @@
 # 1.0.0
 #
 # ARGS
+# account;The account to query;validator
 #
 # BUGS
 # None at this time
@@ -21,4 +22,6 @@ TEST="$4"
 GAS_PRICES="$5"
 GAS_ADJUSTMENT="$6"
 
-"$PROVENANCE_BINARY" keys list --home "$PROVENANCE_HOME" "$TEST"
+ACCOUNT=$7
+
+"$PROVENANCE_BINARY" --home "$PROVENANCE_HOME" "$TEST" q bank balances "$ACCOUNT"

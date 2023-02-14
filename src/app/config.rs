@@ -9,7 +9,8 @@ pub struct Config {
     pub provenance_home: String,
     pub test_network: String,
     pub gas_prices: String,
-    pub gas_adjustment: String
+    pub gas_adjustment: String,
+    pub chain_id: String
 }
 
 pub fn get_config(path: &PathBuf) -> Config {

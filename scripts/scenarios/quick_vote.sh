@@ -17,13 +17,16 @@
 
 
 # Provenance Configuration
-PROVENANCE_BUILD_DIR="$1"
-PROVENANCE_BINARY="$2"
+PROVENANCE_BINARY="$1"
+PROVENANCE_BUILD_DIR="$2"
 PROVENANCE_HOME="$3"
+TEST="$4"
+GAS_PRICES="$5"
+GAS_ADJUSTMENT="$6"
 
 # Quickvote config
 CONFIG=run-config
-VOTING_PERIOD="$4s"
+VOTING_PERIOD="$7s"
 MINUTE_EPOCH="{\"identifier\": \"minute\",\"start_height\": \"0\",\"duration\": \"12\",\"current_epoch\": \"0\", \"current_epoch_start_height\": \"0\",\"epoch_counting_started\": false}"
 
 # Clean and rebuild my provenance run environment
