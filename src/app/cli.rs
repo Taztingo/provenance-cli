@@ -1,6 +1,6 @@
-use std::{fs, env, path::{Path, PathBuf}};
+use std::{fs, env, path::{Path, PathBuf}, cmp::Ordering};
 
-use clap::{Command, command, Arg};
+use clap::{Command, command, Arg, ArgMatches};
 use glob::glob;
 use std::process;
 
@@ -88,39 +88,51 @@ pub fn cli(app: &mut App) {
         },
         Some(("action", action_matches)) => {
             match action_matches.subcommand() {
-                Some((external, _)) => {
+                Some((external, ext_m)) => {
                     let shell = env::var("PIO_SCRIPT").expect("PIO_SCRIPT must be set");
                     let mut script_path = Path::new(&shell).join("scripts").join("actions");
                     script_path.push(format!("{}.sh", external));
-                    run_script(script_path.to_string_lossy().to_string().as_str(), &app.config)
+                    let args = get_args_from_argmatches(ext_m);
+                    run_script(script_path.to_string_lossy().to_string().as_str(), &app.config, &args)
                 }
                 _ => println!("Unreachable")
             }
         },
-        Some(("function", action_matches)) => {
-            match action_matches.subcommand() {
-                Some((external, _)) => {
+        Some(("function", function_matches)) => {
+            match function_matches.subcommand() {
+                Some((external, ext_m)) => {
                     let shell = env::var("PIO_SCRIPT").expect("PIO_SCRIPT must be set");
                     let mut script_path = Path::new(&shell).join("scripts").join("functions");
                     script_path.push(format!("{}.sh", external));
-                    run_script(script_path.to_string_lossy().to_string().as_str(), &app.config)
+                    let args = get_args_from_argmatches(ext_m);
+                    run_script(script_path.to_string_lossy().to_string().as_str(), &app.config, &args)
                 }
                 _ => println!("Unreachable")
             }
         },
-        Some(("scenario", action_matches)) => {
-            match action_matches.subcommand() {
-                Some((external, _)) => {
+        Some(("scenario", scenario_matches)) => {
+            match scenario_matches.subcommand() {
+                Some((external, ext_m)) => {
                     let shell = env::var("PIO_SCRIPT").expect("PIO_SCRIPT must be set");
                     let mut script_path = Path::new(&shell).join("scripts").join("scenarios");
                     script_path.push(format!("{}.sh", external));
-                    run_script(script_path.to_string_lossy().to_string().as_str(), &app.config)
+                    let args = get_args_from_argmatches(ext_m);
+                    run_script(script_path.to_string_lossy().to_string().as_str(), &app.config, &args)
                 }
                 _ => println!("Unreachable")
             }
         }
         _ => println!("Unreachable")
     }
+}
+
+fn get_args_from_argmatches(ext_m: &ArgMatches) -> Vec<String> {
+    let mut args: Vec<(String, String)> = ext_m.ids()
+    .map(|arg| (arg.as_str().to_string(), ext_m.get_one::<String>(arg.as_str()).unwrap().clone()))
+    .collect();
+    args.sort_by(|a, b| a.0.cmp(&b.0));
+    let args: Vec<String> = args.iter().map(|arg| arg.1.clone()).collect();
+    args
 }
 
 fn get_actions() -> Vec<Command> {
@@ -171,14 +183,15 @@ fn get_scenarios() -> Vec<Command> {
     commands
 }
 
-fn run_script(script: &str, config: &Config) {
+fn run_script(script: &str, config: &Config, args: &[String]) {
     let output = process::Command::new(script)
         .arg(&config.provenance_build)
         .arg(&config.provenance_binary)
         .arg(&config.provenance_home)
-        .arg("20")
+        .args(args)
         .output()
         .expect("Failed to execute command");
+
     print!("{}", String::from_utf8_lossy(&output.stdout).to_string());
 }
 
