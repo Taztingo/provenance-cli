@@ -1,13 +1,14 @@
-use std::{fs, env, path::{Path, PathBuf}, cmp::Ordering};
+use std::{fs, env, path::{Path, PathBuf}, io};
 
 use clap::{Command, command, Arg, ArgMatches};
+use clap_complete::{generate, shells::Bash};
 use glob::glob;
 use std::process;
 
 use super::{config::Config, App};
 
 pub fn cli(app: &mut App) {
-    let matches = command!()
+    let mut cli = command!()
     .next_line_help(false)
     .subcommand_required(true)
     .arg_required_else_help(true)
@@ -59,8 +60,12 @@ pub fn cli(app: &mut App) {
         .about("Runs a complex scenario for Provenance containing multiple functions")
         .subcommands(get_scenarios())
     )
-    .get_matches();
+    .subcommand(
+        Command::new("autocomplete")
+        .about("Generates a new autocomplete script and outputs it to stdout")
+    );
 
+    let matches = cli.clone().get_matches();
     match matches.subcommand() {
         Some(("config", config_matches)) => {
             match config_matches.subcommand() {
@@ -121,6 +126,9 @@ pub fn cli(app: &mut App) {
                 }
                 _ => println!("Unreachable")
             }
+        }
+        Some(("autocomplete", _setup_matches)) => {
+            generate(Bash, &mut cli, "provenance-script", &mut io::stdout());
         }
         _ => println!("Unreachable")
     }
