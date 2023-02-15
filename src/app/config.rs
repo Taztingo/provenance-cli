@@ -35,7 +35,7 @@ impl Config {
     }
 
     pub fn save(&self, path: &PathBuf) {
-        let json = serde_json::to_string(&self).unwrap();
+        let json = serde_json::to_string_pretty(&self).unwrap();
         let mut file = File::create(path).unwrap();
         file.write_all(json.as_bytes()).unwrap();
     }
